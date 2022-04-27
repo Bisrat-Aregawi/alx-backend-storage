@@ -1,8 +1,28 @@
 #!/usr/bin/env python3
 """Module defines `Cache` class"""
+import functools
 import redis
-from typing import Optional, Union, Callable
+from typing import Any, Optional, Union, Callable
 from uuid import uuid4
+
+
+def count_calls(method: Callable) -> Callable:
+    """Decorator to print number of calls of method
+
+    Args:
+        method (Callable): variable representing decorated method
+
+    Returns:
+        Wrapper method that prints number of calls and returns value of
+        wrapped method
+    """
+    @functools.wraps(method)
+    def count_calls_wrapper(self, *args: Any, **kwargs: Any) -> Any:
+        """Wrapper method for provided wrapped method"""
+        self._redis.incr(method.__qualname__)
+        return method(self, *args, **kwargs)
+
+    return count_calls_wrapper
 
 
 class Cache:
@@ -14,6 +34,7 @@ class Cache:
         self._redis = redis.Redis()
         self._redis.flushdb()
 
+    @count_calls
     def store(self, data: DB_VAL_TYPS) -> str:
         """Store passed data in a unique key
 
