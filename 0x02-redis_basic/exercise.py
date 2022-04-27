@@ -18,16 +18,44 @@ def count_calls(method: Callable) -> Callable:
     """
     @functools.wraps(method)
     def count_calls_wrapper(self, *args: Any, **kwargs: Any) -> Any:
-        """Wrapper method for provided wrapped method"""
+        """
+        Wrapper method for provided wrapped method
+        """
         self._redis.incr(method.__qualname__)
         return method(self, *args, **kwargs)
 
     return count_calls_wrapper
 
 
+def call_history(method: Callable) -> Callable:
+    """Decorator to store history of inputs and outputs of methods
+
+    Args:
+        method (Callable): variable representing decorated method
+
+    Returns:
+        Wrapper method that prints number of calls and returns value of
+        wrapped method
+    """
+    @functools.wraps(method)
+    def call_history_wrapper(self, *args: Any, **kwargs: Any) -> Any:
+        """
+        Wrapper method for provided wrapped method
+        """
+        self._redis.rpush(method.__qualname__ + ':inputs', str(args))
+        output = method(self, *args, **kwargs)
+        self._redis.rpush(
+            method.__qualname__ + ':outputs',
+            output
+        )
+        return output
+
+    return call_history_wrapper
+
+
 class Cache:
     """Cache class"""
-    DB_VAL_TYPS = Union[str, bytes, int, float]
+    DB_VAL_TYPS = Union[str, bytes, int, float, None]
 
     def __init__(self) -> None:
         """Constructor method for class `Cache`"""
@@ -35,7 +63,8 @@ class Cache:
         self._redis.flushdb()
 
     @count_calls
-    def store(self, data: DB_VAL_TYPS) -> str:
+    @call_history
+    def store(self, data: Union[bytes, float, int, str]) -> str:
         """Store passed data in a unique key
 
         Args:
@@ -66,10 +95,14 @@ class Cache:
         return fn(raw_data) if fn is not None else raw_data
 
     def get_str(self, data: bytes) -> str:
-        """Return string casted data"""
+        """
+        Return string casted data
+        """
         return data.decode('utf-8')
 
     def get_int(self, data: bytes) -> int:
-        """Return integer casted data"""
+        """
+        Return integer casted data
+        """
         return int(data)
     pass
