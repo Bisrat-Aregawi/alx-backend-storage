@@ -1,2 +1,2 @@
 // Script lists all documents that match given field-value
-db.school.find({name: "Holberton School"}).prety();
+db.school.find({"name": "Holberton school"}).pretty();
