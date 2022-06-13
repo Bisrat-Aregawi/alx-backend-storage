@@ -136,3 +136,6 @@ dmypy.json
 
 # Test python files
 *main.py
+
+# Binary json files
+*.bson
